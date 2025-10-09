@@ -21,8 +21,6 @@ package com.graphhopper.reader.dem;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -61,7 +59,6 @@ class HGTProviderTest {
         File tmpDir = tempDir.toFile();
         HGTProvider hgt = new HGTProvider(tmpDir.getAbsolutePath());
 
-        // 1) Préparer le ZIP synthétique
         File zipFile = new File(tmpDir, "test.hgt.zip");
         byte[] expected = new byte[1200 * 1200 * 2];
         for (int i = 0; i < expected.length; i++) expected[i] = (byte) (i & 0xFF); 
@@ -73,10 +70,9 @@ class HGTProviderTest {
             zos.closeEntry();
         }
 
-        // 2) Act
+        
         byte[] data = hgt.readFile(zipFile);
 
-        // 3) Assert
         assertNotNull(data, "readFile doit retourner un tableau non nul");
         assertArrayEquals(expected, data, "Le contenu lu doit être identique au contenu écrit");
         assertTrue(zipFile.delete(), "Le ZIP doit être supprimable (flux correctement fermés)");
