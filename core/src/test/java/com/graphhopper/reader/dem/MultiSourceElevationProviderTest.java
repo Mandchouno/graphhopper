@@ -39,7 +39,7 @@ public class MultiSourceElevationProviderTest {
     }
 
     /**
-     * [TEST 1] Frontière nord inclusive
+     * Test 1: Frontière nord inclusive
      * Vérifier que, à la frontière supérieure de couverture SRTM/CGIAR, le provider
      * GMTED est bien utilisé.
      * Données : lat=+60.0, lon=0.
@@ -64,7 +64,7 @@ public class MultiSourceElevationProviderTest {
     }
 
     /**
-     * [TEST 2] Frontière sud inclusive
+     * Test 2: Frontière sud inclusive
      * Vérifier que, à la frontière inférieure de couverture SRTM/CGIAR, le provider
      * GMTED est bien utilisé.
      * Données : lat=-56.0, lon=0.
@@ -89,7 +89,7 @@ public class MultiSourceElevationProviderTest {
     }
 
     /**
-     * [TEST 3] Hors couverture au nord
+     * Test 3: Hors couverture au nord
      * Valider que le provider GMTED est bien choisie au-delà de la frontière.
      * Données : lat=+60.0001, lon=0.
      * Valeur renvoyée par la méthode : 2.0 (=> GMTED).
@@ -113,7 +113,7 @@ public class MultiSourceElevationProviderTest {
     }
 
     /**
-     * [TEST 4] Hors couverture au sud
+     * Test 4: Hors couverture au sud
      * Valider que le provider GMTED est bien choisie juste en-dessous de la
      * frontière.
      * Données : lat=-56.0001, lon=0.
