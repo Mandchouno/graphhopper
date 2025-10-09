@@ -21,7 +21,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import com.github.javafaker.Faker;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Random;
 
 /**
  * @author Robin Boldt
@@ -191,5 +194,30 @@ public class MultiSourceElevationProviderTest {
         assertEquals(0, instance.getEle(60.0000001, 19), precision);
         // Stor Roten
         assertEquals(14, instance.getEle(60.251, 18.805), precision);
+    }
+
+    @Test
+    public void delegatesWithRandomCoordinates_UsingFaker_seeded() {
+        Faker faker = new Faker(new Random(42));
+
+        MultiSourceElevationProvider instance = new MultiSourceElevationProvider(
+                new CGIARProvider() {
+                    @Override public double getEle(double lat, double lon) { return 1.0; }
+                },
+                new GMTEDProvider() {
+                    @Override public double getEle(double lat, double lon) { return 2.0; }
+                }
+        );
+
+        for (int i = 0; i < 200; i++) {
+            double lat = faker.number().randomDouble(6, -90, 90);
+            double lon = faker.number().randomDouble(6, -180, 180);
+
+            // à partir de 60.0 au nord et -56.0 au sud -> GMTED (2.0), sinon CGIAR (1.0)
+            double expected = (lat >= 60.0 || lat <= -56.0) ? 2.0 : 1.0;
+
+            assertEquals(expected, instance.getEle(lat, lon), 0.1,
+                    "lat=" + lat + ", lon=" + lon);
+        }
     }
 }

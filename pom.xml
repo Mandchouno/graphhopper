@@ -175,6 +175,37 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>1.20.6</version>
+                    <dependencies>
+                        <dependency>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-junit5-plugin</artifactId>
+                        <version>1.2.1</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <testPlugin>junit5</testPlugin>
+                        <threads>4</threads>
+                        <timestampedReports>false</timestampedReports>
+
+                        <targetClasses>
+                        <param>com.graphhopper.reader.dem.MultiSourceElevationProvider</param>
+                        <param>com.graphhopper.reader.dem.HGTProvider</param>
+                        </targetClasses>
+                        <targetTests>
+                        <param>com.graphhopper.reader.dem.MultiSourceElevationProviderTest</param>
+                        <param>com.graphhopper.reader.dem.HGTProviderTest</param>
+                        </targetTests>
+
+                        <jvmArgs>
+                        <jvmArg>-Xmx1g</jvmArg>
+                        </jvmArgs>
+                        <mutationThreshold>0</mutationThreshold>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
@@ -304,7 +335,6 @@
             <url>https://maven.pkg.github.com/graphhopper/graphhopper</url>
         </repository>
     </distributionManagement>
-
     <!-- mvn clean deploy -P release -->
     <profiles>
         <profile>
@@ -345,7 +375,6 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <version>3.4.1</version>
                         <configuration>
-                            <!-- note that we disable doclint via properties globally, using <doclint>none</doclint> did not seem to work -->
                             <quiet>true</quiet>
                         </configuration>
                         <executions>
@@ -373,5 +402,55 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- Profil PIT – neutralise argLine et configure PIT -->
+        <profile>
+            <id>pitest</id>
+            <properties>
+                <argLine/>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine></argLine>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>1.20.6</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.pitest</groupId>
+                                <artifactId>pitest-junit5-plugin</artifactId>
+                                <version>1.2.1</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <testPlugin>junit5</testPlugin>
+                            <threads>4</threads>
+                            <timestampedReports>false</timestampedReports>
+                            <targetClasses>
+                                <param>com.graphhopper.reader.dem.MultiSourceElevationProvider</param>
+                                <param>com.graphhopper.reader.dem.HGTProvider</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>com.graphhopper.reader.dem.MultiSourceElevationProviderTest</param>
+                                <param>com.graphhopper.reader.dem.HGTProviderTest</param>
+                            </targetTests>
+                            <jvmArgs>
+                                <jvmArg>-Xmx1g</jvmArg>
+                            </jvmArgs>
+                            <mutationThreshold>0</mutationThreshold>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
+
 </project>
