@@ -19,7 +19,7 @@
 
 ## Nouveaux Tests Ajoutés
 
-### 1️⃣ `readFile_zipValide_retourneContenuComplet`
+### 1 `readFile_zipValide_retourneContenuComplet`
 
 **Intention du test :**  
 Vérifier que `readFile()` lit intégralement la première entrée d’un fichier `.zip` valide.
@@ -40,7 +40,7 @@ Les fichiers HGT (SRTM) sont fournis sous forme de ZIP contenant une seule entr�
 
 ---
 
-### 2️⃣ `readFile_surUnRepertoire_declencheIOException`
+### 2 `readFile_surUnRepertoire_declencheIOException`
 
 **Intention du test :**  
 Valider que `readFile()` lève une `IOException` si le fichier passé est en réalité un répertoire.
@@ -54,7 +54,7 @@ Renforcer la robustesse face aux erreurs d’E/S : `Files.newInputStream(dir)` d
 
 ---
 
-### 3️⃣ `getFileName_zero_basculeSudOuest`
+### 3 `getFileName_zero_basculeSudOuest`
 
 **Intention du test :**  
 Documenter la convention de nommage pour les coordonnées nulles (0.0).  
@@ -71,7 +71,7 @@ Documenter la convention de nommage pour les coordonnées nulles (0.0).
 
 ---
 
-### 4️⃣ `getFileName_SW_valeursNegatives`
+### 4 `getFileName_SW_valeursNegatives`
 
 **Intention du test :**  
 Vérifier le comportement pour des latitudes et longitudes négatives.  
@@ -86,7 +86,7 @@ Valider que `Math.floor()` est utilisé correctement et que le padding est appli
 
 ---
 
-### 5️⃣ `delegatesToSecondProvider_atNorthBoundaryInclusive`
+### 5 `delegatesToSecondProvider_atNorthBoundaryInclusive`
 
 **Intention du test :**  
 Vérifier que pour la latitude limite nord (+60.0), la méthode `getEle()` choisit correctement le provider **GMTED**.
@@ -102,7 +102,7 @@ Avant, les comparateurs `<` et `>` ne testaient pas précisément les bornes.
 
 ---
 
-### 6️⃣ `delegatesToSecondProvider_atSouthBoundaryInclusive`
+### 6 `delegatesToSecondProvider_atSouthBoundaryInclusive`
 
 **Intention du test :**  
 Vérifier la borne inférieure sud (-56.0).  
@@ -112,8 +112,8 @@ Vérifier la borne inférieure sud (-56.0).
 
 ---
 
-### 7️⃣ `northJustOutside_usesGmted`  
-### 8️⃣ `delegatesToSecondProvider_justBeyondSouthBoundary`
+### 7 `northJustOutside_usesGmted`  
+### 8 `delegatesToSecondProvider_justBeyondSouthBoundary`
 
 **Intention :**  
 Tester juste au-delà des frontières pour s’assurer de la délégation correcte vers **GMTED** lorsque `lat > 60.0` ou `lat < -56.0`.
@@ -123,7 +123,7 @@ Tester juste au-delà des frontières pour s’assurer de la délégation correc
 
 ---
 
-### 9️⃣ `testGetEleMocked` (avec JavaFaker)
+### 9 `testGetEleMocked` (avec JavaFaker)
 
 **Intention du test :**  
 Valider dynamiquement le comportement de délégation entre CGIAR et GMTED sur des coordonnées aléatoires.
