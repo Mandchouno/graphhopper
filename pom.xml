@@ -403,7 +403,7 @@
             </build>
         </profile>
 
-        <!-- Profil PIT – neutralise argLine et configure PIT -->
+        <!-- Profil PIT -->
         <profile>
             <id>pitest</id>
             <properties>
