@@ -169,7 +169,7 @@ Nos nouveaux tests :
 
 ---
 
-📊 **Score global après nos ajouts :**
+**Score global après nos ajouts :**
 - **Mutation coverage : 45 % (13/29)**  
 - **Test strength : 68 %**
 
