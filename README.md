@@ -27,23 +27,29 @@ Le mock permet de contrôler la valeur retournée par getShort(long index) sans 
 Les mocks ont été définis à l’aide de la bibliothèque Mockito, en combinant les méthodes mock(), when() et verify().
 
 1. Mock d’ElevationProvider
+```java
 ElevationProvider mockElevation = mock(ElevationProvider.class);
 when(mockElevation.getEle(anyDouble(), anyDouble())).thenReturn(50.0);
 when(mockElevation.canInterpolate()).thenReturn(true);
+```
 Ce mock renvoie une altitude fixe (50 m) pour simplifier les tests et s’assurer que la logique d’ajout de points repose uniquement sur la distance, pas sur la topographie réelle
 
 2. Mock de DistanceCalcEarth
+```java
 DistanceCalcEarth mockDistance = mock(DistanceCalcEarth.class);
 when(mockDistance.calcDist3D(anyDouble(), anyDouble(), anyDouble(),
                              anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(1000.0);
+```
 
 Le mock renvoie une distance constante de 1000 m entre tous les points.
 Cela permet de vérifier la logique du code d’EdgeSampling.sample() sans dépendre du calcul trigonométrique réel.
 
 3. Mock de DataAccess
+```java
 DataAccess mockData = mock(DataAccess.class);
 when(mockData.getShort(anyLong())).thenReturn((short) 50);
+```
 Ici, getShort() renvoie toujours 50, simulant une tuile d’altitude uniforme.
 Ce choix permet d’obtenir un résultat prévisible de la méthode getHeight() sans avoir à utiliser une vraie mémoire RAMDirectory.
 
