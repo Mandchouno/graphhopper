@@ -164,6 +164,49 @@
                     <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <!-- si tu as gardé la version dans pluginManagement du parent, tu peux omettre <version> ici -->
+                <version>1.21.1</version>
+
+                <dependencies>
+                    <dependency>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-junit5-plugin</artifactId>
+                    <version>1.2.1</version>
+                    </dependency>
+                </dependencies>
+
+                <configuration>
+                    <testPlugin>junit5</testPlugin>
+
+                    <!-- cible exactement tes deux classes -->
+                    <targetClasses>
+                    <param>com.graphhopper.reader.dem.EdgeSampling</param>
+                    <param>com.graphhopper.reader.dem.HeightTile</param>
+                    </targetClasses>
+
+                    <excludedClasses>
+                    <param>*IT*</param>
+                    <param>com.graphhopper.tools.*</param>
+                    <param>com.graphhopper.reader.osm.*</param>
+                    </excludedClasses>
+
+                    <!-- stabilité JDK17 -->
+                    <jvmArgs>
+                    <param>--add-opens=java.base/java.lang=ALL-UNNAMED</param>
+                    <param>--enable-native-access=ALL-UNNAMED</param>
+                    </jvmArgs>
+
+                    <timeoutConst>8000</timeoutConst>
+                    <timeoutFactor>2.0</timeoutFactor>
+                    <threads>4</threads>
+
+                    <historyInputFile>${project.build.directory}/pitHistory.txt</historyInputFile>
+                    <historyOutputFile>${project.build.directory}/pitHistory.txt</historyOutputFile>
+                </configuration>
+            </plugin>
         </plugins>
 
         <!-- make version available at runtime via version file -->
