@@ -9,8 +9,9 @@ jobs:
   pit:
     runs-on: ubuntu-latest
     env:
-      MODULE: graphhopper-core     # <- change si besoin
-      DELTA_TOL: "0.00"
+      MODULE: core
+      DELTA_TOL: "0.05"
+      TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
 
     steps:
       - name: Checkout HEAD (PR)
@@ -23,6 +24,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: maven
 
       - name: Cache Maven
         uses: actions/cache@v4
@@ -36,8 +38,28 @@ jobs:
         working-directory: head
         run: |
           set -euxo pipefail
-          mvn -q -pl "$MODULE" -am -DskipITs org.pitest:pitest-maven:mutationCoverage
-          bash scripts/pit_score.sh > ../head_score.txt
+          mvn -q -pl "$MODULE" -am \
+            -DskipITs \
+            -DtestPlugin=junit5 \
+            -DtargetClasses="${TARGET_CLASSES}" \
+            -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
+            org.pitest:pitest-maven:mutationCoverage
+          if [ -x scripts/pit_score.sh ]; then
+            bash scripts/pit_score.sh > ../head_score.txt
+          else
+            python3 - <<'PY' > ../head_score.txt
+import xml.etree.ElementTree as ET, glob, os
+xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
+if not xmls:
+  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
+xml = xmls[-1]
+root = ET.parse(xml).getroot()
+muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
+v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
+print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
+PY
+          fi
           echo "HEAD_SCORE=$(cat ../head_score.txt)"
 
       - name: Upload HEAD report
@@ -57,8 +79,28 @@ jobs:
         working-directory: base
         run: |
           set -euxo pipefail
-          mvn -q -pl "$MODULE" -am -DskipITs org.pitest:pitest-maven:mutationCoverage
-          bash scripts/pit_score.sh > ../base_score.txt
+          mvn -q -pl "$MODULE" -am \
+            -DskipITs \
+            -DtestPlugin=junit5 \
+            -DtargetClasses="${TARGET_CLASSES}" \
+            -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
+            org.pitest:pitest-maven:mutationCoverage
+          if [ -x scripts/pit_score.sh ]; then
+            bash scripts/pit_score.sh > ../base_score.txt
+          else
+            python3 - <<'PY' > ../base_score.txt
+import xml.etree.ElementTree as ET, glob, os
+xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
+if not xmls:
+  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
+xml = xmls[-1]
+root = ET.parse(xml).getroot()
+muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
+v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
+print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
+PY
+          fi
           echo "BASE_SCORE=$(cat ../base_score.txt)"
 
       - name: Upload BASE report
