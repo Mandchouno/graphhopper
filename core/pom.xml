@@ -167,7 +167,6 @@
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
-                <!-- si tu as gardé la version dans pluginManagement du parent, tu peux omettre <version> ici -->
                 <version>1.21.1</version>
 
                 <dependencies>
@@ -181,7 +180,6 @@
                 <configuration>
                     <testPlugin>junit5</testPlugin>
 
-                    <!-- cible exactement tes deux classes -->
                     <targetClasses>
                     <param>com.graphhopper.reader.dem.EdgeSampling</param>
                     <param>com.graphhopper.reader.dem.HeightTile</param>
@@ -193,7 +191,6 @@
                     <param>com.graphhopper.reader.osm.*</param>
                     </excludedClasses>
 
-                    <!-- stabilité JDK17 -->
                     <jvmArgs>
                     <param>--add-opens=java.base/java.lang=ALL-UNNAMED</param>
                     <param>--enable-native-access=ALL-UNNAMED</param>
