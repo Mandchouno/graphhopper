@@ -12,6 +12,7 @@ jobs:
       MODULE: core
       DELTA_TOL: "0.05"
       TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
+      PIT_REGRESSION: "false"
 
     steps:
       - name: Checkout HEAD (PR)
@@ -94,29 +95,33 @@ jobs:
           name: pit-report-base
           path: base/${{ env.MODULE }}/target/pit-reports
 
-      - name: Compare scores and fail on regression
+      - name: Compare scores and mark regression
         run: |
           set -euo pipefail
-          BASE=$(cat base_score.txt)
-          HEAD=$(cat head_score.txt)
-          echo "Base: $BASE | Head: $HEAD | Tol: ${DELTA_TOL}"
           python3 - <<'PY'
-          import os, sys
+          import os
           base = float(open('base_score.txt').read().strip())
           head = float(open('head_score.txt').read().strip())
           tol  = float(os.getenv('DELTA_TOL','0.0'))
+          print(f"Base: {base:.2f} | Head: {head:.2f} | Tol: {tol:.2f}")
+          env_path = os.environ['GITHUB_ENV']
           if head + 1e-9 < base - tol:
               print(f"Mutation score dropped: base {base:.2f} -> head {head:.2f} (tol {tol:.2f})")
-              sys.exit(42)
-          print(f"OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
+              with open(env_path, 'a') as f:
+                  f.write('PIT_REGRESSION=true\n')
+          else:
+              print(f"OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
           PY
 
-  rickroll:
-    needs: pit
-    if: ${{ needs.pit.result == 'failure' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Never gonna give you up 🎵
+      - name: Rickroll because mutation score dropped
+        if: env.PIT_REGRESSION == 'true'
         uses: TejasvOnly/random-rickroll@master
         with:
           probability: '100'
+
+      - name: Fail job because mutation score dropped
+        if: env.PIT_REGRESSION == 'true'
+        run: |
+          echo "Failing because mutation score dropped"
+          exit 42
+
