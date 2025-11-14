@@ -1,8 +1,7 @@
 name: PIT Guard
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
     branches: [ main, master ]
 
 jobs:
@@ -10,17 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MODULE: core
-      DELTA_TOL: "0.05"
+      DELTA_TOL: "0.00"
       TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
       PIT_REGRESSION: "false"
 
     steps:
-      - name: Checkout HEAD (PR)
+      - name: Checkout HEAD (current commit)
         uses: actions/checkout@v4
         with:
           path: head
 
-      - name: Setup Temurin JDK 17
+      - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -55,27 +54,32 @@ jobs:
           bash scripts/pit_score.sh > ../head_score.txt
           echo "HEAD_SCORE=$(cat ../head_score.txt)"
 
-      - name: Upload HEAD report
+      - name: Upload HEAD PIT report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pit-report-head
+          name: pit-HEAD
           path: head/${{ env.MODULE }}/target/pit-reports
 
-      - name: Checkout BASE
+      - name: Checkout repository for HEAD~1
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: base
+          path: head_prev
+          fetch-depth: 2
 
-      - name: Build core and dependencies (BASE)
-        working-directory: base
+      - name: Move to previous commit (HEAD~1)
+        working-directory: head_prev
+        run: |
+          git checkout HEAD~1
+
+      - name: Build core + dependencies (HEAD~1)
+        working-directory: head_prev
         run: |
           set -euxo pipefail
           mvn -q -pl "$MODULE" -am -DskipTests install
 
-      - name: Run PIT on BASE
-        working-directory: base
+      - name: Run PIT on HEAD~1
+        working-directory: head_prev
         run: |
           set -euxo pipefail
           mvn -q -pl "$MODULE" \
@@ -85,43 +89,39 @@ jobs:
             -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
             -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
-          bash scripts/pit_score.sh > ../base_score.txt
-          echo "BASE_SCORE=$(cat ../base_score.txt)"
 
-      - name: Upload BASE report
+          bash scripts/pit_score.sh > ../head_prev_score.txt
+          echo "HEAD_PREV_SCORE=$(cat ../head_prev_score.txt)"
+
+      - name: Upload HEAD~1 PIT report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pit-report-base
-          path: base/${{ env.MODULE }}/target/pit-reports
+          name: pit-HEAD~1
+          path: head_prev/${{ env.MODULE }}/target/pit-reports
 
-      - name: Compare scores and mark regression
+      - name: Compare HEAD vs HEAD~1 and detect regression
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import os
-          base = float(open('base_score.txt').read().strip())
+          prev = float(open('head_prev_score.txt').read().strip())
           head = float(open('head_score.txt').read().strip())
           tol  = float(os.getenv('DELTA_TOL','0.0'))
-          print(f"Base: {base:.2f} | Head: {head:.2f} | Tol: {tol:.2f}")
-          env_path = os.environ['GITHUB_ENV']
-          if head + 1e-9 < base - tol:
-              print(f"Mutation score dropped: base {base:.2f} -> head {head:.2f} (tol {tol:.2f})")
-              with open(env_path, 'a') as f:
-                  f.write('PIT_REGRESSION=true\n')
-          else:
-              print(f"OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
-          PY
 
-      - name: Rickroll because mutation score dropped
-        if: env.PIT_REGRESSION == 'true'
-        uses: TejasvOnly/random-rickroll@master
-        with:
-          probability: '100'
+          print(f"HEAD~1: {prev:.2f} | HEAD: {head:.2f} | Tol: {tol:.2f}")
+
+          env_path = os.environ['GITHUB_ENV']
+          if head + 1e-9 < prev - tol:
+            print(f"Mutation score dropped: HEAD~1 {prev:.2f} -> HEAD {head:.2f}")
+            with open(env_path, 'a') as f:
+              f.write('PIT_REGRESSION=true\n')
+          else:
+            print("No regression detected.")
+          PY
 
       - name: Fail job because mutation score dropped
         if: env.PIT_REGRESSION == 'true'
         run: |
-          echo "Failing because mutation score dropped"
+          echo "❌ Mutation score dropped → failing build."
           exit 42
-
