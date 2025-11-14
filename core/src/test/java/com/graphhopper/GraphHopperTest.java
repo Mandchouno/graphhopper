@@ -1228,7 +1228,6 @@ public class GraphHopperTest {
     }
 
     @Test
-    @org.junit.jupiter.api.Disabled("probe PIT fail")
     public void testSRTMWithLongEdgeSampling() {
         final String profile = "profile";
 
