@@ -33,6 +33,12 @@ jobs:
           key: maven-${{ runner.os }}-${{ hashFiles('head/**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
+      
+      - name: Build core and dependencies (HEAD)
+        working-directory: head
+        run: |
+          set -euxo pipefail
+          mvn -q -pl "$MODULE" -am -DskipTests install
 
       - name: Run PIT on HEAD
         working-directory: head
@@ -60,6 +66,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
+
+      - name: Build core and dependencies (BASE)
+        working-directory: base
+        run: |
+          set -euxo pipefail
+          mvn -q -pl "$MODULE" -am -DskipTests install
 
       - name: Run PIT on BASE
         working-directory: base
