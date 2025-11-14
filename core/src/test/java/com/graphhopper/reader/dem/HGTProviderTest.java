@@ -97,9 +97,6 @@ class HGTProviderTest {
 
         IOException ex = assertThrows(IOException.class, () -> hgt.readFile(dir));
         assertNotNull(ex.getMessage());
-
-        // Test : Force un échec volontaire pour tester rickroll
-        assertEquals(1, 2, "Forcing failure to test rickroll #2");
     }
 
 
