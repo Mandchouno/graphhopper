@@ -21,8 +21,6 @@ package com.graphhopper.reader.dem;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -99,6 +97,9 @@ class HGTProviderTest {
 
         IOException ex = assertThrows(IOException.class, () -> hgt.readFile(dir));
         assertNotNull(ex.getMessage());
+
+        // Test : Force un échec volontaire pour tester rickroll
+        assertEquals(1, 2, "Forcing failure to test rickroll");
     }
 
 
