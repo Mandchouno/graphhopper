@@ -99,7 +99,7 @@ class HGTProviderTest {
         assertNotNull(ex.getMessage());
 
         // Test : Force un échec volontaire pour tester rickroll
-        assertEquals(1, 2, "Forcing failure to test rickroll");
+        assertEquals(1, 2, "Forcing failure to test rickroll #2");
     }
 
 
