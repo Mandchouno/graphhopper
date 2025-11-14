@@ -123,5 +123,5 @@ jobs:
       - name: Fail job because mutation score dropped
         if: env.PIT_REGRESSION == 'true'
         run: |
-          echo "❌ Mutation score dropped → failing build."
+          echo "Mutation score dropped → failing build."
           exit 42
