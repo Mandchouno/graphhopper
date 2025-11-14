@@ -38,15 +38,13 @@ jobs:
         working-directory: head
         run: |
           set -euxo pipefail
-          mvn -q -pl "$MODULE" -am \
+          mvn -q -pl "$MODULE" \
             -DskipITs \
             -DtestPlugin=junit5 \
             -DtargetClasses="${TARGET_CLASSES}" \
             -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
             -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
-          # scripts/pit_score.sh existe maintenant aussi sur master,
-          # donc on peut l'utiliser directement sans fallback
           bash scripts/pit_score.sh > ../head_score.txt
           echo "HEAD_SCORE=$(cat ../head_score.txt)"
 
@@ -67,7 +65,7 @@ jobs:
         working-directory: base
         run: |
           set -euxo pipefail
-          mvn -q -pl "$MODULE" -am \
+          mvn -q -pl "$MODULE" \
             -DskipITs \
             -DtestPlugin=junit5 \
             -DtargetClasses="${TARGET_CLASSES}" \
