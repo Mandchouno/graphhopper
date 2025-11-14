@@ -43,9 +43,7 @@ jobs:
       # Rickroll quand un test échoue
       - name: Rickroll because tests failed
         if: steps.tests.outcome == 'failure'
-        uses: TejasvOnly/random-rickroll@master
-        with:
-          probability: '100'
+        uses: ./.github/actions/rickroll  
 
       # On fait quand même échouer le build
       - name: Fail job after rickroll
