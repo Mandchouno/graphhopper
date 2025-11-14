@@ -1,0 +1,17 @@
+name: Rickroll
+description: Simple rickroll for failed builds
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+## Tests failed
+
+🎶 *"Never gonna pass your tests,*  
+*Never gonna fix your bugs,*  
+*Never gonna push a build and*  
+*watch it turn green suddenly…"*
+
+[Click here for emotional support](https://youtu.be/dQw4w9WgXcQ)
+EOF
