@@ -45,21 +45,9 @@ jobs:
             -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
             -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
-          if [ -x scripts/pit_score.sh ]; then
-            bash scripts/pit_score.sh > ../head_score.txt
-          else
-            python3 - <<'PY' > ../head_score.txt
-import xml.etree.ElementTree as ET, glob, os
-xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
-if not xmls:
-  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
-xml = xmls[-1]
-root = ET.parse(xml).getroot()
-muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
-v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
-print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
-PY
-          fi
+          # scripts/pit_score.sh existe maintenant aussi sur master,
+          # donc on peut l'utiliser directement sans fallback
+          bash scripts/pit_score.sh > ../head_score.txt
           echo "HEAD_SCORE=$(cat ../head_score.txt)"
 
       - name: Upload HEAD report
@@ -86,21 +74,7 @@ PY
             -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
             -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
-          if [ -x scripts/pit_score.sh ]; then
-            bash scripts/pit_score.sh > ../base_score.txt
-          else
-            python3 - <<'PY' > ../base_score.txt
-import xml.etree.ElementTree as ET, glob, os
-xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
-if not xmls:
-  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
-xml = xmls[-1]
-root = ET.parse(xml).getroot()
-muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
-v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
-print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
-PY
-          fi
+          bash scripts/pit_score.sh > ../base_score.txt
           echo "BASE_SCORE=$(cat ../base_score.txt)"
 
       - name: Upload BASE report
@@ -117,15 +91,15 @@ PY
           HEAD=$(cat head_score.txt)
           echo "Base: $BASE | Head: $HEAD | Tol: ${DELTA_TOL}"
           python3 - <<'PY'
-import os, sys
-base = float(open('base_score.txt').read().strip())
-head = float(open('head_score.txt').read().strip())
-tol  = float(os.getenv('DELTA_TOL','0.0'))
-if head + 1e-9 < base - tol:
-    print(f"❌ Mutation score dropped: base {base:.2f} -> head {head:.2f} (tol {tol:.2f})")
-    sys.exit(42)
-print(f"✅ OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
-PY
+          import os, sys
+          base = float(open('base_score.txt').read().strip())
+          head = float(open('head_score.txt').read().strip())
+          tol  = float(os.getenv('DELTA_TOL','0.0'))
+          if head + 1e-9 < base - tol:
+              print(f"Mutation score dropped: base {base:.2f} -> head {head:.2f} (tol {tol:.2f})")
+              sys.exit(42)
+          print(f"OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
+          PY
 
   rickroll:
     needs: pit
