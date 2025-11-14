@@ -1,0 +1,138 @@
+name: PIT Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, master ]
+
+jobs:
+  pit:
+    runs-on: ubuntu-latest
+    env:
+      MODULE: core
+      DELTA_TOL: "0.05"
+      TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
+
+    steps:
+      - name: Checkout HEAD (PR)
+        uses: actions/checkout@v4
+        with:
+          path: head
+
+      - name: Setup Temurin JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('head/**/pom.xml') }}
+          restore-keys: |
+            maven-${{ runner.os }}-
+
+      - name: Run PIT on HEAD
+        working-directory: head
+        run: |
+          set -euxo pipefail
+          mvn -q -pl "$MODULE" -am \
+            -DskipITs \
+            -DtestPlugin=junit5 \
+            -DtargetClasses="${TARGET_CLASSES}" \
+            -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
+            org.pitest:pitest-maven:mutationCoverage
+          if [ -x scripts/pit_score.sh ]; then
+            bash scripts/pit_score.sh > ../head_score.txt
+          else
+            python3 - <<'PY' > ../head_score.txt
+import xml.etree.ElementTree as ET, glob, os
+xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
+if not xmls:
+  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
+xml = xmls[-1]
+root = ET.parse(xml).getroot()
+muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
+v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
+print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
+PY
+          fi
+          echo "HEAD_SCORE=$(cat ../head_score.txt)"
+
+      - name: Upload HEAD report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pit-report-head
+          path: head/${{ env.MODULE }}/target/pit-reports
+
+      - name: Checkout BASE
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Run PIT on BASE
+        working-directory: base
+        run: |
+          set -euxo pipefail
+          mvn -q -pl "$MODULE" -am \
+            -DskipITs \
+            -DtestPlugin=junit5 \
+            -DtargetClasses="${TARGET_CLASSES}" \
+            -Dthreads=4 -DtimeoutConst=12000 -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
+            org.pitest:pitest-maven:mutationCoverage
+          if [ -x scripts/pit_score.sh ]; then
+            bash scripts/pit_score.sh > ../base_score.txt
+          else
+            python3 - <<'PY' > ../base_score.txt
+import xml.etree.ElementTree as ET, glob, os
+xmls = sorted(glob.glob('**/target/pit-reports/**/mutations.xml', recursive=True))
+if not xmls:
+  xmls = sorted(glob.glob('**/target/pit-reports/mutations.xml', recursive=True))
+xml = xmls[-1]
+root = ET.parse(xml).getroot()
+muts = [m for m in root.findall('mutation') if m.get('status') != 'NON_VIABLE']
+v=len(muts); d=sum(1 for m in muts if m.get('detected')=='true')
+print(f"{0.0 if v==0 else 100.0*d/v:.2f}")
+PY
+          fi
+          echo "BASE_SCORE=$(cat ../base_score.txt)"
+
+      - name: Upload BASE report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pit-report-base
+          path: base/${{ env.MODULE }}/target/pit-reports
+
+      - name: Compare scores and fail on regression
+        run: |
+          set -euo pipefail
+          BASE=$(cat base_score.txt)
+          HEAD=$(cat head_score.txt)
+          echo "Base: $BASE | Head: $HEAD | Tol: ${DELTA_TOL}"
+          python3 - <<'PY'
+import os, sys
+base = float(open('base_score.txt').read().strip())
+head = float(open('head_score.txt').read().strip())
+tol  = float(os.getenv('DELTA_TOL','0.0'))
+if head + 1e-9 < base - tol:
+    print(f"❌ Mutation score dropped: base {base:.2f} -> head {head:.2f} (tol {tol:.2f})")
+    sys.exit(42)
+print(f"✅ OK: head {head:.2f} vs base {base:.2f} (tol {tol:.2f})")
+PY
+
+  rickroll:
+    needs: pit
+    if: ${{ needs.pit.result == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Never gonna give you up 🎵
+        uses: TejasvOnly/random-rickroll@master
+        with:
+          probability: '100'
