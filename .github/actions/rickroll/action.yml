@@ -1,7 +1,7 @@
 name: Rickroll
 description: Simple rickroll for failed builds
 runs:
-  using: "composite"
+  using: composite
   steps:
     - shell: bash
       run: |
