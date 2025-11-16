@@ -181,9 +181,13 @@
                     <testPlugin>junit5</testPlugin>
 
                     <targetClasses>
-                    <param>com.graphhopper.reader.dem.EdgeSampling</param>
-                    <param>com.graphhopper.reader.dem.HeightTile</param>
+                        <param>com.graphhopper.*</param>
                     </targetClasses>
+
+                    <outputFormats>
+                        <param>XML</param>
+                        <param>HTML</param>
+                    </outputFormats>
 
                     <excludedClasses>
                     <param>*IT*</param>
