@@ -5,14 +5,14 @@ set -euo pipefail
 REPORT_XML="$(find . -type f \( -path '*/target/pit-reports/mutations.xml' -o -path '*/target/pit-reports/*/mutations.xml' \) 2>/dev/null | sort | tail -n1 || true)"
 
 if [[ -z "${REPORT_XML}" || ! -f "${REPORT_XML}" ]]; then
-  echo "❌ Aucun rapport PIT trouvé (recherché: */target/pit-reports[/...]/mutations.xml)"
+  echo "Aucun rapport PIT trouvé (recherché: */target/pit-reports[/...]/mutations.xml)"
   exit 2
 fi
 
 # python3 > python fallback
 if command -v python3 >/dev/null 2>&1; then PY=python3
 elif command -v python >/dev/null 2>&1; then PY=python
-else echo "❌ Python introuvable (python3/python)"; exit 3; fi
+else echo "Python introuvable (python3/python)"; exit 3; fi
 
 "$PY" - "$REPORT_XML" <<'PY'
 import xml.etree.ElementTree as ET, sys
