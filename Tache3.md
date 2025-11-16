@@ -106,15 +106,15 @@ Comparaison :
 
 ```bash
 if (( $(echo "$NEW_SCORE < $OLD_SCORE - $DELTA_TOL" | bc -l) )); then
-  echo "❌ Mutation score regression detected"
+  echo "Mutation score regression detected"
   exit 1
 fi
 ```
 
 ### 1.2.5. Validation
 
-- Sans modification des tests → score stable → workflow passe ✔️  
-- Tests volontairement affaiblis → score plus faible → guard échoue ❌  
+- Sans modification des tests → score stable → workflow passe   
+- Tests volontairement affaiblis → score plus faible → guard échoue   
   - message clair dans le résumé GitHub Actions  
   - historique des scores affiché  
   - merge bloqué  
