@@ -22,6 +22,11 @@ import com.graphhopper.storage.RAMDirectory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+// Importation librairies mockito
+import static org.mockito.Mockito.*;
+import org.mockito.Mockito;
 
 /**
  * @author Peter Karich
@@ -154,5 +159,54 @@ public class HeightTileTest {
             sum += n;
         }
         return sum / ns.length;
+    }
+
+    // ce test verifie le comportement de HeightTile lorsqu’aucune donnée d’altitude n’a été initialisée.
+    @Test
+    public void testGetHeightWithEmptyData() {
+        int width = 5, height = 5;
+        HeightTile tile = new HeightTile(0, 0, width, height, 1e-6, 5, 5);
+        DataAccess data = new RAMDirectory().create("tmp");
+        data.create(2 * width * height);
+        tile.setHeights(data);
+
+        // Aucune donnée n’est mise dans data
+        double result = tile.getHeight(2.5, 2.5);
+
+        // Selon la logique interne, HeightTile renvoie 0 ou 1
+        assertEquals(0, result, 1e-3, "Should return 0 for uninitialized data");
+    }
+
+    // Ce test verifie la gestion des altitudes négatives dans HeightTile.
+    // Il s’assure que la méthode getHeight() gère correctement cette situation
+    // en retournant une valeur non négative.
+    @Test
+    public void testNegativeHeights() {
+        int width = 3, height = 3;
+        HeightTile tile = new HeightTile(0, 0, width, height, 1e-6, 5, 5);
+        DataAccess data = new RAMDirectory().create("tmp");
+        data.create(2 * width * height);
+        tile.setHeights(data);
+
+        // Valeur négative
+        data.setShort(2 * (1 * width + 1), (short) -25);
+        assertEquals(0, tile.getHeight(2.5, 2.5), 1e-3);
+    }
+
+    // Vérifie que la classe HeightTile interagit correctement avec son DataAccess.
+    // Ce test confirme que getShort(long) est bien appelé et que la valeur simulée est utilisée dans le calcul final de getHeight(lat, lon).
+    @Test
+    public void testGetHeightWithMockedDataAccess() {
+        DataAccess mockData = mock(DataAccess.class);
+
+        when(mockData.getShort(anyLong())).thenReturn((short) 50);
+
+        HeightTile tile = new HeightTile(0, 0, 10, 10, 1e-6, 10, 10);
+        tile.setHeights(mockData);
+
+        double result = tile.getHeight(5, 5);
+
+        assertEquals(50.0, result, 1e-3);
+        verify(mockData, atLeastOnce()).getShort(anyLong());
     }
 }
