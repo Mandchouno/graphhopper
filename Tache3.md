@@ -166,8 +166,6 @@ when(mockData.getShort(anyLong())).thenReturn((short) 50);
 Ici, getShort() renvoie toujours 50, simulant une tuile d’altitude uniforme.
 Ce choix permet d’obtenir un résultat prévisible de la méthode getHeight() sans avoir à utiliser une vraie mémoire RAMDirectory.
 
-⸻
-
 Les valeurs utilisées (50 pour l’altitude et 1000 pour la distance) ne servent pas à représenter des données réelles, mais à garantir la simplicité des tests.
 
 L’objectif est de :
