@@ -2,7 +2,7 @@ name: PIT Guard
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "master" ]
 
 jobs:
   pit:
