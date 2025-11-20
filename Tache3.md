@@ -124,13 +124,13 @@ fi
 Choix des classes simulées
 
 Deux dépendances majeures ont été simulées :
-	1.	ElevationProvider
+1. ElevationProvider
 Cette classe fournit les valeurs d’altitude à partir de coordonnées géographiques.
 Elle a été mockée dans EdgeSamplingTest afin de contrôler entièrement les valeurs d’altitude renvoyées et de vérifier que la méthode getEle(lat, lon) est bien appelée par EdgeSampling.sample().
-	2.	DistanceCalcEarth
+2. DistanceCalcEarth
 Ce calculateur de distances géographiques a également été mocké dans EdgeSamplingTest.
 L’objectif est de s’assurer que le calcul des distances repose bien sur les appels à calcDist3D() et de vérifier la logique d’ajout de points intermédiaires indépendamment du calcul réel.
-	3.	DataAccess
+3. DataAccess
 Cette interface a été simulée dans HeightTileTest.
 Elle représente un accès bas niveau aux données binaires des tuiles DEM.
 
