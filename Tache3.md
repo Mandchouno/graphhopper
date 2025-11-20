@@ -63,61 +63,80 @@ Garantir qu’aucun commit ne diminue la qualité globale des tests (score PIT s
 
 ### 1.2.2. Déclencheur
 
-Le workflow s’exécute automatiquement sur toutes les branches :
+Le workflow s’exécute automatiquement sur la branche "master" :
 
 ```
 push:
-  branches: [ "**" ]
+  branches: [ "master" ]
 ```
 
-### 1.2.3. Fonctionnement
+### 1.2.3. Fonctionnement général
 
-1. Exécution de PIT sur le commit courant (**HEAD**) → extraction du score.
-2. Checkout du commit précédent (**HEAD^**) → exécution de PIT.
-3. Extraction des scores depuis `mutations.xml`.
-4. Comparaison :
-   - si `score_nouveau < score_ancien - DELTA_TOL` → **échec**
-   - sinon → succès
+Le processus se déroule en quatre étapes :
 
-PIT analyse toutes les classes du module core, selon la configuration définie dans core/pom.xml :
+1. **Exécution de PIT sur le commit courant (HEAD)**  
+   - PIT est exécuté uniquement sur les classes ciblées grâce au paramètre :  
+     ```
+     -DtargetClasses=com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile
+     ```
+   - Un petit script (`scripts/pit_score.sh`) extrait ensuite le score exact à partir du fichier `mutations.xml`.
+
+2. **Récupération du score de référence**  
+   - Lors de la première exécution, aucun score n’est disponible : le score courant devient alors la référence.  
+   - Lors des exécutions suivantes, le workflow télécharge le score stocké précédemment (sur la branche `master`).
+
+3. **Comparaison du score courant avec le score de référence**  
+   - Si le score courant est inférieur au score de référence **au-delà d’une tolérance configurée**, le workflow échoue.  
+   - Sinon, le score est considéré valide.
+
+4. **Mise à jour du score de référence**  
+   - Si aucun recul n’est détecté, le score courant est enregistré afin de servir de référence à la prochaine exécution.
+
+### 1.2.4. Tolérance (DELTA_TOL)
+
+PIT peut produire de légères variations d’un run à l’autre sur GitHub Actions (charges variables, parallélisme, timeouts).  
+Pour éviter des échecs injustifiés, une tolérance est introduite :
 
 ```
-<targetClasses>
-    <param>com.graphhopper.*</param>
-</targetClasses>
+DELTA_TOL = 0.50    # tolérance de 0.50 point de pourcentage
 ```
 
-Tolérance :
+Ainsi, une baisse trop faible pour être significative (< 0.5 point) est ignorée, mais toute diminution réelle du score entraîne bien l’échec du workflow.
+
+### 1.2.5. Extraction du score
+
+Le score est extrait dans `scripts/pit_score.sh` à partir du fichier `mutations.xml`, selon la formule :
 
 ```
-DELTA_TOL = 0.00
+score = (mutants_détectés / mutants_viables) * 100
 ```
 
-### 1.2.4. Extraction et comparaison des scores
+Le script est robuste :  
+- ignore les mutants marqués NON_VIABLE,  
+- gère les rapports PIT datés,  
+- produit une valeur numérique simple (ex : `82.35`).
 
-Exemples d’extraction :
+### 1.2.6. Comparaison et validation
+
+Exemple de logique utilisée dans le workflow :
 
 ```bash
-NEW_SCORE=$(grep -oP 'mutationCoverage="\K[0-9.]+' pit-reports/head/mutations.xml)
-OLD_SCORE=$(grep -oP 'mutationCoverage="\K[0-9.]+' pit-reports/parent/mutations.xml)
-```
-
-Comparaison :
-
-```bash
-if (( $(echo "$NEW_SCORE < $OLD_SCORE - $DELTA_TOL" | bc -l) )); then
-  echo "Mutation score regression detected"
-  exit 1
+if (diff > DELTA_TOL) then
+    # le score a réellement baissé -> échec
+else
+    # pas de régression -> succès
 fi
 ```
 
-### 1.2.5. Validation
+Si le score courant ne présente pas de régression, il devient le **nouveau score de référence** pour les exécutions futures.
 
-- Sans modification des tests → score stable → workflow passe   
-- Tests volontairement affaiblis → score plus faible → guard échoue   
-  - message clair dans le résumé GitHub Actions  
-  - historique des scores affiché  
-  - merge bloqué  
+### 1.2.7. Résultat attendu
+
+- **Score stable ou amélioré** → le workflow réussit et met à jour la valeur de référence  
+- **Score réellement diminué** → le workflow échoue et bloque l’intégration  
+- **Faible variation (< DELTA_TOL)** → considérée comme du bruit ; mise à jour acceptée
+
+Ce mécanisme garantit que les modifications futures ne pourront pas dégrader la robustesse des tests sans être détectées.
 
 ---
 
