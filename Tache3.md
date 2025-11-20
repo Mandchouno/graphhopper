@@ -121,73 +121,61 @@ fi
 
 ---
 
-# 2. Classes testées
+Choix des classes simulées
 
-## 2.1. EdgeSampling
+Deux dépendances majeures ont été simulées :
+	1.	ElevationProvider
+Cette classe fournit les valeurs d’altitude à partir de coordonnées géographiques.
+Elle a été mockée dans EdgeSamplingTest afin de contrôler entièrement les valeurs d’altitude renvoyées et de vérifier que la méthode getEle(lat, lon) est bien appelée par EdgeSampling.sample().
+	2.	DistanceCalcEarth
+Ce calculateur de distances géographiques a également été mocké dans EdgeSamplingTest.
+L’objectif est de s’assurer que le calcul des distances repose bien sur les appels à calcDist3D() et de vérifier la logique d’ajout de points intermédiaires indépendamment du calcul réel.
+	3.	DataAccess
+Cette interface a été simulée dans HeightTileTest.
+Elle représente un accès bas niveau aux données binaires des tuiles DEM.
 
-Responsable de :
+Définition des mocks et choix des valeurs simulées
 
-- l’interpolation géographique,
-- la génération de points intermédiaires,
-- l’intégration des altitudes,
-- la propagation correcte des distances et coordonnées.
+Le mock permet de contrôler la valeur retournée par getShort(long index) sans avoir à créer ou initialiser de véritables fichiers de données.
+Les mocks ont été définis à l’aide de la bibliothèque Mockito, en combinant les méthodes mock(), when() et verify().
 
-## 2.2. HeightTile
-
-Responsable de :
-
-- la lecture des tuiles DEM,
-- l’interprétation des valeurs binaires,
-- le retour de l’altitude associée à une position latitude/longitude.
-
----
-
-# 3. Dépendances mockées avec Mockito
-
-## 3.1. ElevationProvider (EdgeSamplingTest)
-
+1. Mock d’ElevationProvider
 ```java
 ElevationProvider mockElevation = mock(ElevationProvider.class);
 when(mockElevation.getEle(anyDouble(), anyDouble())).thenReturn(50.0);
 when(mockElevation.canInterpolate()).thenReturn(true);
 ```
+Ce mock renvoie une altitude fixe (50 m) pour simplifier les tests et s’assurer que la logique d’ajout de points repose uniquement sur la distance, pas sur la topographie réelle
 
-## 3.2. DistanceCalcEarth (EdgeSamplingTest)
-
+2. Mock de DistanceCalcEarth
 ```java
 DistanceCalcEarth mockDistance = mock(DistanceCalcEarth.class);
-when(mockDistance.calcDist3D(
-        anyDouble(), anyDouble(), anyDouble(),
-        anyDouble(), anyDouble(), anyDouble()
-)).thenReturn(1000.0);
+when(mockDistance.calcDist3D(anyDouble(), anyDouble(), anyDouble(),
+                             anyDouble(), anyDouble(), anyDouble()))
+        .thenReturn(1000.0);
 ```
 
-## 3.3. DataAccess (HeightTileTest)
+Le mock renvoie une distance constante de 1000 m entre tous les points.
+Cela permet de vérifier la logique du code d’EdgeSampling.sample() sans dépendre du calcul trigonométrique réel.
 
+3. Mock de DataAccess
 ```java
 DataAccess mockData = mock(DataAccess.class);
 when(mockData.getShort(anyLong())).thenReturn((short) 50);
 ```
+Ici, getShort() renvoie toujours 50, simulant une tuile d’altitude uniforme.
+Ce choix permet d’obtenir un résultat prévisible de la méthode getHeight() sans avoir à utiliser une vraie mémoire RAMDirectory.
 
----
+⸻
 
-# 4. Justification des valeurs simulées
+Les valeurs utilisées (50 pour l’altitude et 1000 pour la distance) ne servent pas à représenter des données réelles, mais à garantir la simplicité des tests.
 
-Les valeurs simulées ont été choisies pour :
-
-- garantir un comportement déterministe ;
-- éliminer la variabilité due aux données réelles ;
-- tester uniquement la **logique interne** (interpolation, propagation des altitudes, lecture des tuiles) ;
-- faciliter l’analyse des mutants générés par PIT.
-
-Exemples :
-
-- **Altitude simulée : 50 m**  
-- **Distance simulée : 1000 m**
-
-Ces valeurs sont simples, stables et suffisantes pour valider le comportement attendu.
-
----
+L’objectif est de :
+	•	éliminer toute variabilité liée à des calculs réels (trigonométrie, interpolation bilinéaire, etc.) ;
+	•	se concentrer sur la vérification du comportement logique des méthodes testées :
+	•	ajout ou non de points intermédiaires ;
+	•	bonne propagation des appels aux dépendances ;
+	•	respect des conditions seuils dans les interpolations.
 
 # 5. Lien vers le dépôt GitHub modifié
 
