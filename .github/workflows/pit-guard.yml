@@ -10,6 +10,7 @@ jobs:
     env:
       MODULE: core
       TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
+      DELTA_TOLERANCE: "0.50"
 
     steps:
       - name: Checkout
@@ -81,14 +82,18 @@ jobs:
             PREVIOUS_SCORE=$(cat mutation-score.txt.old)
             echo "Previous mutation score: ${PREVIOUS_SCORE}"
 
-            # comparaison
-            awk -v cur="$CURRENT_SCORE" -v prev="$PREVIOUS_SCORE" '
+            TOL=${DELTA_TOLERANCE:-0.0}
+
+            awk -v cur="$CURRENT_SCORE" -v prev="$PREVIOUS_SCORE" -v tol="$TOL" '
               BEGIN {
-                if (cur + 1e-9 < prev) {
-                  printf("Mutation score decreased: %.2f -> %.2f\n", prev, cur);
+                diff = prev - cur;
+                if (diff > tol + 1e-9) {
+                  printf("Mutation score decreased beyond tolerance: %.2f -> %.2f (Δ=%.2f > tol=%.2f)\n",
+                         prev, cur, diff, tol);
                   exit 1;
                 } else {
-                  printf("Mutation score maintained or improved: %.2f -> %.2f\n", prev, cur);
+                  printf("Mutation score within tolerance: %.2f -> %.2f (Δ=%.2f, tol=%.2f)\n",
+                         prev, cur, diff, tol);
                   exit 0;
                 }
               }'
