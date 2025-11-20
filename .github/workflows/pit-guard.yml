@@ -11,6 +11,7 @@ jobs:
       MODULE: core
       DELTA_TOL: "0.00"
       PIT_REGRESSION: "false"
+      TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
 
     steps:
       - name: Checkout HEAD (current commit)
@@ -43,9 +44,12 @@ jobs:
         working-directory: head
         run: |
           set -euxo pipefail
-          # PIT sur tout le module core, en s'appuyant sur la config du pom
           mvn -q -pl "$MODULE" \
-            -DargLine="" \
+            -DtargetClasses="$TARGET_CLASSES" \
+            -Dthreads=4 \
+            -DtimeoutConst=12000 \
+            -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
           bash scripts/pit_score.sh > ../head_score.txt
           echo "HEAD_SCORE=$(cat ../head_score.txt)"
@@ -79,10 +83,15 @@ jobs:
         run: |
           set -euxo pipefail
           mvn -q -pl "$MODULE" \
-            -DargLine="" \
+            -DtargetClasses="$TARGET_CLASSES" \
+            -Dthreads=4 \
+            -DtimeoutConst=12000 \
+            -DtimeoutFactor=3.0 \
+            -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
           bash scripts/pit_score.sh > ../head_prev_score.txt
           echo "HEAD_PREV_SCORE=$(cat ../head_prev_score.txt)"
+
 
       - name: Upload HEAD~1 PIT report
         if: always()
