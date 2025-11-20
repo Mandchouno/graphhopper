@@ -9,15 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MODULE: core
-      DELTA_TOL: "0.00"
-      PIT_REGRESSION: "false"
       TARGET_CLASSES: "com.graphhopper.reader.dem.EdgeSampling,com.graphhopper.reader.dem.HeightTile"
 
     steps:
-      - name: Checkout HEAD (current commit)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: head
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -30,18 +26,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: maven-${{ runner.os }}-${{ hashFiles('head/**/pom.xml') }}
+          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-${{ runner.os }}-
-      
-      - name: Build core and dependencies (HEAD)
-        working-directory: head
+
+      - name: Build core and dependencies
         run: |
           set -euxo pipefail
           mvn -q -pl "$MODULE" -am -DskipTests install
 
-      - name: Run PIT on HEAD
-        working-directory: head
+      - name: Run PIT 
         run: |
           set -euxo pipefail
           mvn -q -pl "$MODULE" \
@@ -51,77 +45,66 @@ jobs:
             -DtimeoutFactor=3.0 \
             -DoutputFormats=XML,HTML \
             org.pitest:pitest-maven:mutationCoverage
-          bash scripts/pit_score.sh > ../head_score.txt
-          echo "HEAD_SCORE=$(cat ../head_score.txt)"
 
-      - name: Upload HEAD PIT report
+          # ton script qui lit le rapport PIT et sort un nombre (ex: 82.35)
+          bash scripts/pit_score.sh > mutation-score.txt
+
+          echo "CURRENT_SCORE=$(cat mutation-score.txt)"
+
+      - name: Upload PIT report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pit-HEAD
-          path: head/${{ env.MODULE }}/target/pit-reports
+          name: pit-report
+          path: core/target/pit-reports
 
-      - name: Checkout repository for HEAD~1
-        uses: actions/checkout@v4
+
+      - name: Download previous mutation score
+        id: download-baseline
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
         with:
-          path: head_prev
-          fetch-depth: 2
+          name: mutation-score
+          workflow: pit-guard.yml
+          branch: main
 
-      - name: Move to previous commit (HEAD~1)
-        working-directory: head_prev
-        run: |
-          git checkout HEAD~1
-
-      - name: Build core + dependencies (HEAD~1)
-        working-directory: head_prev
-        run: |
-          set -euxo pipefail
-          mvn -q -pl "$MODULE" -am -DskipTests install
-
-      - name: Run PIT on HEAD~1
-        working-directory: head_prev
-        run: |
-          set -euxo pipefail
-          mvn -q -pl "$MODULE" \
-            -DtargetClasses="$TARGET_CLASSES" \
-            -Dthreads=4 \
-            -DtimeoutConst=12000 \
-            -DtimeoutFactor=3.0 \
-            -DoutputFormats=XML,HTML \
-            org.pitest:pitest-maven:mutationCoverage
-          bash scripts/pit_score.sh > ../head_prev_score.txt
-          echo "HEAD_PREV_SCORE=$(cat ../head_prev_score.txt)"
-
-
-      - name: Upload HEAD~1 PIT report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pit-HEAD~1
-          path: head_prev/${{ env.MODULE }}/target/pit-reports
-
-      - name: Compare HEAD vs HEAD~1 and detect regression
+      - name: Compare with previous score
+        id: compare
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os
-          prev = float(open('head_prev_score.txt').read().strip())
-          head = float(open('head_score.txt').read().strip())
-          tol  = float(os.getenv('DELTA_TOL','0.0'))
 
-          print(f"HEAD~1: {prev:.2f} | HEAD: {head:.2f} | Tol: {tol:.2f}")
+          CURRENT_SCORE=$(cat mutation-score.txt)
+          echo "Current mutation score: ${CURRENT_SCORE}"
 
-          env_path = os.environ['GITHUB_ENV']
-          if head + 1e-9 < prev - tol:
-            print(f"Mutation score dropped: HEAD~1 {prev:.2f} -> HEAD {head:.2f}")
-            with open(env_path, 'a') as f:
-              f.write('PIT_REGRESSION=true\n')
-          else:
-            print("No regression detected.")
-          PY
+          if [ -f mutation-score.txt.old ]; then
+            # fichier venant de l'artifact précédent, s'il existe
+            PREVIOUS_SCORE=$(cat mutation-score.txt.old)
+            echo "Previous mutation score: ${PREVIOUS_SCORE}"
 
-      - name: Fail job because mutation score dropped
-        if: env.PIT_REGRESSION == 'true'
+            # comparaison
+            awk -v cur="$CURRENT_SCORE" -v prev="$PREVIOUS_SCORE" '
+              BEGIN {
+                if (cur + 1e-9 < prev) {
+                  printf("Mutation score decreased: %.2f -> %.2f\n", prev, cur);
+                  exit 1;
+                } else {
+                  printf("Mutation score maintained or improved: %.2f -> %.2f\n", prev, cur);
+                  exit 0;
+                }
+              }'
+          else
+            echo "No previous baseline found. Using current score as baseline."
+          fi
+
+      - name: Prepare baseline file for artifact
+        if: success()
         run: |
-          echo "Mutation score dropped → failing build."
-          exit 42
+          # on garde le score courant pour la prochaine run
+          mv mutation-score.txt mutation-score.txt.old
+
+      - name: Save new mutation score as artifact (baseline)
+        if: success() && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-score
+          path: mutation-score.txt.old
