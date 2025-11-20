@@ -66,7 +66,7 @@ jobs:
         with:
           name: mutation-score
           workflow: pit-guard.yml
-          branch: main
+          branch: master
 
       - name: Compare with previous score
         id: compare
@@ -103,7 +103,7 @@ jobs:
           mv mutation-score.txt mutation-score.txt.old
 
       - name: Save new mutation score as artifact (baseline)
-        if: success() && github.ref == 'refs/heads/main'
+        if: success() && github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: mutation-score
