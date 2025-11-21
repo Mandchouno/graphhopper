@@ -193,13 +193,3 @@ L’objectif est de :
 	•	ajout ou non de points intermédiaires ;
 	•	bonne propagation des appels aux dépendances ;
 	•	respect des conditions seuils dans les interpolations.
-
-# 5. Lien vers le dépôt GitHub modifié
-
-*(À compléter par l’équipe)*
-
----
-
-# 6. Documentation externe
-
-*(À compléter : lien vers la page expliquant la démarche complète du projet)*
